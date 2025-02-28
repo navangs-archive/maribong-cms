@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qi.project.mapper.QuizMapper">
+	<!-- 퀴즈 리스트 조회 -->
+	<select id="getQuizList" resultType="hashmap">
+		select CONVERT(@rownum := @rownum + 1, DECIMAL) as seq
+			  , t.quiz_no as quizNo
+			  , t.quiz_title as quizTitle
+			  , date_format(t.reg_date, '%Y-%m-%d %H:%i') as reg_date
+		from   quiz_info t
+			 , (SELECT @rownum := 0) row_number
+		order by quiz_no desc
+	</select>
+
+	<!-- 마지막 퀴즈번호 조회 -->
+	<select id="getMaxQuizNo" resultType="int">
+		select max(quiz_no)
+		from   quiz_info
+	</select>
+
+	<!-- 퀴즈 할당 체크  -->
+	<select id="checkQuizUser" parameterType="hashmap" resultType="int">
+		select count(*)
+		from   user_quiz
+		where  user_id = #{userId}
+		  and  quiz_no = #{quizNo}
+	</select>
+
+	<!-- 퀴즈 조회 -->
+	<select id="getQuiz" parameterType="hashmap" resultType="hashmap">
+		select quiz_no as quizNo
+			 , quiz_title as quizTitle
+			 , reg_date
+		from   quiz_info
+		where  quiz_no = #{quizNo}
+	</select>
+
+	<!-- 문항 조회 -->
+	<select id="getQuizQuestion" parameterType="hashmap" resultType="hashmap">
+		select question_no as questionNo
+			 , quiz_no as quizNo
+			 , question_content as questionContent
+			 , question_answer as questionAnswer
+		from   question_info
+		where  quiz_no = #{quizNo}
+	</select>
+	
+	<!-- 선택지 조회 -->
+	<select id="getQuizChoice" parameterType="hashmap" resultType="hashmap">
+		select choice_no as choiceNo
+			 , question_no as questionNo
+			 , quiz_no as quizNo
+			 , choice_content as choiceContent
+		from   choice_info
+		where  quiz_no = #{quizNo}
+		order by question_no, choice_no
+	</select>
+	
+	<!-- 할당 조회 -->
+	<select id="getQuizUser" parameterType="hashmap" resultType="hashmap">
+		select qi.quiz_no as quizNo
+			 , qi.user_id as userId
+			 , ui.user_name as userName
+		from   user_quiz qi inner join user_info ui
+									on qi.user_id = ui.user_id
+		where  qi.quiz_no = #{quiz_no}
+	</select>
+	
+	<!-- 퀴즈 등록 -->
+	<insert id="insertQuiz" parameterType="hashmap">
+		insert into quiz_info ( quiz_no
+							  , quiz_title
+							  )
+		values ( default
+			   , #{quizTitle}
+			   )
+	</insert>
+	
+	<!-- 문항 등록 -->
+	<insert id="insertQuizQuestion" parameterType="hashmap">
+		insert into question_info ( question_no
+								  , quiz_no
+								  , question_content
+								  , question_answer
+								  )
+		values ( #{questionNo}
+			   , #{quizNo}
+			   , #{questionContent}
+			   , #{questionAnswer}
+			   )
+	</insert>
+	
+	<!-- 선택지 등록 -->
+	<insert id="insertQuizChoice" parameterType="hashmap">
+		insert into choice_info ( choice_no
+								, question_no
+								, quiz_no
+								, choice_content
+								)
+		values ( #{choiceNo}
+			   , #{questionNo}
+			   , #{quizNo}
+			   , #{choiceContent}
+			   )
+	</insert>
+	
+	<!-- 할당 등록 -->
+	<insert id="insertQuizUser" parameterType="hashmap">
+		insert into user_quiz ( user_id
+							  , quiz_no
+							  )
+		values ( #{userId}
+			   , #{quizNo}
+			   )
+	</insert>
+	
+	<!-- 퀴즈변경 -->
+	<update id="updateQuiz" parameterType="hashmap">
+		update quiz_info
+		set    quiz_title = #{quizTitle}
+			 , mod_date = now()
+		where  quiz_no = #{quizNo}
+	</update>
+	
+	<!-- 문항변경 -->
+	<update id="updateQuizQuestion" parameterType="hashmap">
+		update question_info
+		set    question_content = #{questionContent}
+			 , question_answer = #{questionAnswer}
+			 , mod_date = now()
+		where  quiz_no = #{quizNo}
+		  and  question_no = #{questionNo}
+	</update>
+	
+	<!-- 퀴즈 삭제 -->
+	<delete id="deleteQuiz" parameterType="hashmap">
+		delete 
+		from   quiz_info 
+		where  quiz_no = #{quizNo}
+	</delete>
+	
+	<!-- 문항 삭제 -->
+	<delete id="deleteQuizQuestion" parameterType="hashmap">
+		delete 
+		from   question_info 
+		where  quiz_no = #{quizNo}
+	</delete>
+	
+	<!-- 선택지 삭제 -->
+	<delete id="deleteQuizChoice" parameterType="hashmap">
+		delete 
+		from   choice_info 
+		where  quiz_no = #{quizNo}
+	</delete>
+	
+	<!-- 선택지 삭제 -->
+	<delete id="deleteQuizUser" parameterType="hashmap">
+		delete 
+		from   user_quiz 
+		where  quiz_no = #{quizNo}
+	</delete>
+	
+</mapper>

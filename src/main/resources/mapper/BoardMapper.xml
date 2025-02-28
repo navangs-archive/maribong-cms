@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qi.project.mapper.BoardMapper">
+
+	<!-- 게시글 목록 조회(관리자용) -->
+	<select id="getAdminBoardList" parameterType="hashmap" resultType="hashmap">
+		select CONVERT(@rownum := @rownum + 1, DECIMAL) as seq
+			  , t.*
+		from  ( SELECT b.user_id as userId
+					 , community_no as communityNo
+					 , case when b.user_id = 'admin'
+					 		then '공지'
+					 		else '일반'
+					   end as category
+					 , substr(b.content,1,10) as title
+					 , uif.user_name as userName
+					 , date_format(b.reg_date, '%Y-%m-%d %H:%i') as reg_date
+					 , case when b.user_id = 'admin' 
+					 		then 'y'
+					 		else coalesce(b.mark,'') 
+					   end as mark
+				FROM   community_info b inner join user_info uif
+									   			on b.user_id = uif.user_id ) t
+			 , (SELECT @rownum := 0) row_number
+		order by case category
+				  when '공지' then 1
+				  else 2
+				 end asc
+			   , reg_date desc
+	</select>
+
+	<!-- 게시글 내용 가져오기 -->
+	<select id="getBoardDetail" parameterType="hashmap" resultType="hashMap">
+		select max(userId) as userId
+			 , max(communityNo) as communityNo
+			 , max(title) as title
+			 , max(content) as content
+			 , max(mark) as mark
+			 , max(country) as country
+			 , max(groupName) as groupName
+			 , max(areaName) as areaName
+			 , max(reaction) as reaction
+			 , max(regDate) as regDate
+			 , max(category) as category
+			 , max(userName) as userName
+		from  ( SELECT b.user_id as userId
+					 , b.community_no as communityNo
+					 , substr(b.content,1,10) as title
+					 , b.content
+					 , b.mark
+					 , b.country
+					 , b.group_name as groupName
+					 , b.area_name as areaName
+					 , b.reaction
+					 , b.reg_date as regDate
+					 , case when b.user_id = 'admin' then '공지'
+					 		else '일반'
+					   end as category
+					 , ui.user_name as userName
+				FROM   community_info b inner join user_info ui
+									   			on b.user_id = ui.user_id
+				WHERE  b.user_id = #{userId}
+				  and  b.community_no = #{communityNo}
+				union all
+				select '' as userId
+					 , 0 as communityNo
+					 , '' as title
+					 , '' as content
+					 , '' as mark 
+					 , '' as country
+					 , '' as groupName 
+					 , '' as areaName 
+					 , '' as reaction 
+					 , '' as regDate 
+					 , '' as category 
+					 , '' as userName) T
+	</select>
+	
+	<select id="getMaxId" resultType="hashmap">
+		select max(community_no) + 1 as maxId
+		from   community_info 
+		where  user_id = 'admin'
+	</select>
+
+	<!-- 게시글 등록 -->
+	<insert id="insertCommunity" parameterType="hashmap">
+		INSERT INTO community_info
+		( user_id
+		, community_no
+		, content
+		)
+		VALUES
+		( 'admin'
+		, #{maxId}
+		, #{content}
+		)
+	</insert>
+	
+	<!-- 인증마크 부여 -->
+	<update id="updateMark" parameterType="hashmap">
+		update community_info
+		set    mark = 'y'
+			 , mod_date = now()
+		where  user_id = #{userId}
+		  and  community_no = #{communityNo}
+	</update>
+	
+	<!-- 글 수정 -->
+	<delete id="updateCommunity" parameterType="hashmap">
+		update community_info
+		set    content = #{content}
+		where  user_id = #{userId}
+		  and  community_no = #{communityNo}
+	</delete>
+	
+	<!-- 글 삭제 -->
+	<delete id="deleteCommunity" parameterType="hashmap">
+		delete
+		from   community_info
+		where  user_id = #{userId}
+		  and  community_no = #{communityNo}
+	</delete>
+</mapper>
